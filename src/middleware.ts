@@ -2,13 +2,19 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse, NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-	const token = await getToken({ req: request });
+	// Explicitly pass secret for Edge compatibility on Vercel
+	const token = await getToken({ 
+		req: request, 
+		secret: process.env.NEXTAUTH_SECRET 
+	});
 
-	if (token?.accessToken) {
+	// Check for token existence - checking just 'token' is more reliable 
+	// as it confirms a valid decrypted session exists
+	if (token) {
 		return NextResponse.next();
 	}
 
-	const loginUrl = new URL("/auth/login", request.url); // 
+	const loginUrl = new URL("/auth/login", request.url);
 	loginUrl.searchParams.set(
 		"callbackUrl",
 		request.nextUrl.pathname + request.nextUrl.search
