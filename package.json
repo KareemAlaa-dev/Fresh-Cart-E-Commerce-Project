@@ -1,0 +1,61 @@
+{
+  "name": "fresh_mart",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@mui/material": "^7.3.2",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@reduxjs/toolkit": "^2.9.0",
+    "@tanstack/react-query": "^5.90.6",
+    "@types/axios": "^0.9.36",
+    "@vercel/speed-insights": "^1.2.0",
+    "animate.css": "^4.1.1",
+    "axios": "^1.13.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.12",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.542.0",
+    "next": "15.5.2",
+    "next-auth": "^4.24.11",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-hook-form": "^7.62.0",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.5.0",
+    "react-redux": "^9.2.0",
+    "react-slick": "^0.30.5",
+    "slick-carousel": "^1.8.1",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.1.9"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/react-slick": "^0.23.13",
+    "critters": "^0.0.23",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.2",
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.3.8",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "debug": "4.3.4"
+  }
+}

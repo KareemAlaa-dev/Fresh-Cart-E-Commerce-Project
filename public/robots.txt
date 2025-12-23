@@ -1,0 +1,21 @@
+# Fresh Cart - Robots.txt
+# Optimized for search engine crawling
+
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/static/
+
+# Allow specific important paths
+Allow: /products
+Allow: /categories
+Allow: /brands
+
+# Sitemap location
+Sitemap: https://fresh-cart.com/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1

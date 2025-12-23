@@ -1,0 +1,260 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Performance: Enable CSS containment for better rendering */
+@supports (contain: layout style paint) {
+  .container,
+  section,
+  article {
+    contain: layout style paint;
+  }
+}
+
+@theme inline {
+  --breakpoint-xs: 340px;
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --radius-md: calc(var(--radius) - 2px);
+
+  --radius-lg: var(--radius);
+
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-border: var(--border);
+
+  --color-input: var(--input);
+
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+
+  --color-chart-2: var(--chart-2);
+
+  --color-chart-3: var(--chart-3);
+
+  --color-chart-4: var(--chart-4);
+
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
+  --color-sidebar-primary: var(--sidebar-primary);
+
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+
+  --color-sidebar-accent: var(--sidebar-accent);
+
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.99 0.01 160); /* Ultra-pure off-white with hint of emerald */
+  --foreground: oklch(0.15 0.05 160); /* Very dark emerald */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.05 160);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.05 160);
+  --primary: oklch(0.3 0.1 160); /* Deep Emerald */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.95 0.03 160); /* Soft Mint */
+  --secondary-foreground: oklch(0.2 0.05 160);
+  --muted: oklch(0.95 0.02 160);
+  --muted-foreground: oklch(0.45 0.05 160);
+  --accent: oklch(0.9 0.08 160); /* Vibrant Mint/Green */
+  --accent-foreground: oklch(0.2 0.05 160);
+  --destructive: oklch(0.6 0.18 20);
+  --border: oklch(0.9 0.02 160 / 0.5);
+  --input: oklch(0.9 0.02 160 / 0.5);
+  --ring: oklch(0.3 0.1 160 / 0.2);
+  --chart-1: oklch(0.3 0.1 160);
+  --chart-2: oklch(0.45 0.15 160);
+  --chart-3: oklch(0.6 0.2 160);
+  --chart-4: oklch(0.75 0.25 160);
+  --chart-5: oklch(0.9 0.3 160);
+  --sidebar: oklch(0.99 0.01 160);
+  --sidebar-foreground: oklch(0.15 0.05 160);
+  --sidebar-primary: oklch(0.3 0.1 160);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.95 0.03 160);
+  --sidebar-accent-foreground: oklch(0.2 0.05 160);
+  --sidebar-border: oklch(0.9 0.02 160 / 0.5);
+  --sidebar-ring: oklch(0.3 0.1 160 / 0.2);
+}
+
+.dark {
+  --background: oklch(0.12 0.04 160); /* Deep midnight emerald */
+  --foreground: oklch(0.95 0.02 160);
+  --card: oklch(0.15 0.05 160);
+  --card-foreground: oklch(0.95 0.02 160);
+  --popover: oklch(0.15 0.05 160);
+  --popover-foreground: oklch(0.95 0.02 160);
+  --primary: oklch(0.8 0.15 160); /* Bright emerald for dark mode */
+  --primary-foreground: oklch(0.15 0.05 160);
+  --secondary: oklch(0.2 0.06 160);
+  --secondary-foreground: oklch(0.95 0.02 160);
+  --muted: oklch(0.2 0.04 160);
+  --muted-foreground: oklch(0.7 0.05 160);
+  --accent: oklch(0.25 0.08 160);
+  --accent-foreground: oklch(0.95 0.02 160);
+  --destructive: oklch(0.4 0.18 20);
+  --border: oklch(0.3 0.05 160 / 0.3);
+  --input: oklch(0.3 0.05 160 / 0.3);
+  --ring: oklch(0.8 0.15 160 / 0.2);
+  --chart-1: oklch(0.8 0.15 160);
+  --chart-2: oklch(0.7 0.12 160);
+  --chart-3: oklch(0.6 0.1 160);
+  --chart-4: oklch(0.5 0.08 160);
+  --chart-5: oklch(0.4 0.06 160);
+  --sidebar: oklch(0.15 0.05 160);
+  --sidebar-foreground: oklch(0.95 0.02 160);
+  --sidebar-primary: oklch(0.8 0.15 160);
+  --sidebar-primary-foreground: oklch(0.15 0.05 160);
+  --sidebar-accent: oklch(0.2 0.06 160);
+  --sidebar-accent-foreground: oklch(0.95 0.02 160);
+  --sidebar-border: oklch(0.3 0.05 160 / 0.3);
+  --sidebar-ring: oklch(0.8 0.15 160 / 0.2);
+}
+
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-md bg-white/60 border border-white/20 shadow-xl;
+  }
+  .dark .glass {
+    @apply bg-black/40 border-white/10 shadow-2xl;
+  }
+  .premium-shadow {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+  }
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-2;
+    will-change: transform;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  /* Performance optimizations */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  .optimize-animation {
+    will-change: transform, opacity;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Optimize font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Universal Interactivity Indicators */
+  button,
+  a,
+  summary,
+  label[for],
+  [role="button"],
+  [onclick],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  .clickable {
+    @apply cursor-pointer transition-[color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform] duration-300;
+  }
+
+  /* Disable pointer and provide feedback for disabled elements */
+  button:disabled,
+  input:disabled,
+  [disabled],
+  .disabled {
+    @apply cursor-not-allowed opacity-50 pointer-events-none;
+  }
+  
+  /* Optimize images for LCP */
+  img {
+    content-visibility: auto;
+  }
+}
+
+
+.loader {
+  border: 2px solid #FFF;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
