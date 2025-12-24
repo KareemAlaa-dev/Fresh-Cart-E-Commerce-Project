@@ -16,6 +16,8 @@ export type ClearCartResponse = {
 export type UpdateCartItemResponse = {
 	status: string,
 	message: string,
+	numOfCartItems: number,
+	cartId: string,
 	data: CartData<ProductCart>
 }
 

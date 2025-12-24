@@ -8,9 +8,15 @@ import Image from 'next/image'
 import React from 'react'
 import OrdersList from '@/components/Orders/OrdersList';
 
+import { redirect } from 'next/navigation';
+
 export default async function OrdersPage() {
 
 	const id = await userId()
+	
+	if (!id) {
+		redirect("/auth/login");
+	}
 
 	const orders: UserOrderResponse[] = await getUserOrders(id);
 

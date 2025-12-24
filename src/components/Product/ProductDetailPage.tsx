@@ -172,6 +172,7 @@ export default function ProductDetailPage({ productData }: { productData: Produc
 									<AddToCartBtn 
 										productId={product._id} 
 										productQuantity={product.quantity} 
+										countToAdd={quantity}
 										size="default" 
 									/>
 								</div>
