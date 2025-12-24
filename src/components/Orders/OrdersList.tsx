@@ -33,7 +33,7 @@ import TrackOrderModal from './TrackOrderModal';
 export default function OrdersList({ orders }: OrdersListProps) {
 	const [selectedOrder, setSelectedOrder] = React.useState<UserOrderResponse | null>(null);
 	const [isInvoiceOpen, setIsInvoiceOpen] = React.useState(false);
-	const [isTrackOrderOpen, setIsTrackOrderOpen] = React.useState(false);
+	const [isTrackOpen, setIsTrackOpen] = React.useState(false);
 
 	const handleOpenInvoice = (order: UserOrderResponse) => {
 		setSelectedOrder(order);
@@ -42,7 +42,7 @@ export default function OrdersList({ orders }: OrdersListProps) {
 
 	const handleOpenTrack = (order: UserOrderResponse) => {
 		setSelectedOrder(order);
-		setIsTrackOrderOpen(true);
+		setIsTrackOpen(true);
 	};
 
 	return (
@@ -180,15 +180,15 @@ export default function OrdersList({ orders }: OrdersListProps) {
 				})}
 			</motion.div>
 
-			<InvoiceModal 
-				isOpen={isInvoiceOpen} 
-				onClose={() => setIsInvoiceOpen(false)} 
-				order={selectedOrder} 
+			<InvoiceModal
+				isOpen={isInvoiceOpen}
+				onClose={() => setIsInvoiceOpen(false)}
+				order={selectedOrder}
 			/>
-			
+
 			<TrackOrderModal
-				isOpen={isTrackOrderOpen}
-				onClose={() => setIsTrackOrderOpen(false)}
+				isOpen={isTrackOpen}
+				onClose={() => setIsTrackOpen(false)}
 				order={selectedOrder}
 			/>
 		</>

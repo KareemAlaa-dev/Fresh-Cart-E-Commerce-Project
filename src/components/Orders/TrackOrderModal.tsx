@@ -3,9 +3,9 @@
 import React from 'react';
 import { UserOrderResponse } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Package, Truck, CheckCircle, Clock, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { X, Truck, Package, ShieldCheck, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface TrackOrderModalProps {
 	isOpen: boolean;
@@ -13,168 +13,221 @@ interface TrackOrderModalProps {
 	order: UserOrderResponse | null;
 }
 
-export default function TrackOrderModal({ isOpen, onClose, order }: TrackOrderModalProps) {
-	if (!order) return null;
+import { createPortal } from 'react-dom';
 
-	// inferred steps based on order state
+export default function TrackOrderModal({ isOpen, onClose, order }: TrackOrderModalProps) {
+	const [mounted, setMounted] = React.useState(false);
+
+	React.useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	const steps = [
 		{
 			id: 'placed',
 			label: 'Order Placed',
-			date: new Date(order.createdAt).toLocaleDateString(),
-			time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+			description: 'We have received your order.',
 			status: 'completed',
-			icon: Package
+			icon: Package,
+			date: order?.createdAt
 		},
 		{
 			id: 'confirmed',
-			label: 'Order Confirmed',
-			date: new Date(order.createdAt).toLocaleDateString(), // Simulating same day confirmation
-			time: new Date(new Date(order.createdAt).getTime() + 1000 * 60 * 30).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // +30 mins
-			status: order.isPaid ? 'completed' : 'current',
-			icon: CheckCircle
+			label: 'Processing',
+			description: 'We are preparing your items.',
+			status: order?.isPaid ? 'completed' : 'current',
+			icon: ShieldCheck,
+			date: order?.updatedAt
 		},
 		{
 			id: 'shipped',
 			label: 'Shipped',
-			date: order.isPaid ? new Date(new Date(order.createdAt).getTime() + 1000 * 60 * 60 * 24).toLocaleDateString() : '-',
-			time: order.isPaid ? '09:00 AM' : '-',
-			status: order.isPaid && !order.isDelivered ? 'current' : (order.isDelivered ? 'completed' : 'pending'),
-			icon: Truck
+			description: 'Package is on the way.',
+			status: order?.isPaid && !order?.isDelivered ? 'current' : (order?.isDelivered ? 'completed' : 'pending'),
+			icon: Truck,
+			date: null
 		},
 		{
 			id: 'delivered',
 			label: 'Delivered',
-			date: order.isDelivered ? new Date(order.updatedAt).toLocaleDateString() : '-',
-			time: order.isDelivered ? new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
-			status: order.isDelivered ? 'completed' : 'pending',
-			icon: MapPin
+			description: 'Package delivered successfully.',
+			status: order?.isDelivered ? 'completed' : 'pending',
+			icon: MapPin,
+			date: order?.isDelivered ? order.updatedAt : null
 		}
 	];
 
-	const currentStepIndex = steps.findLastIndex(s => s.status === 'completed' || s.status === 'current');
+	// Determine active step index for progress bar
+	const activeStepIndex = steps.findIndex(step => step.status === 'current');
+	const completedSteps = steps.filter(step => step.status === 'completed').length;
+	// If no current step is found, but some are completed, the last completed is the active one effectively, or if all completed
+	const progressIndex = activeStepIndex !== -1 ? activeStepIndex : (completedSteps === steps.length ? steps.length : completedSteps);
 
-	return (
+	// Lock body scroll when modal is open and prevent layout shift
+	React.useEffect(() => {
+		if (isOpen) {
+			const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+			document.body.style.overflow = 'hidden';
+			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		} else {
+			document.body.style.overflow = '';
+			document.body.style.paddingRight = '';
+		}
+		return () => {
+			document.body.style.overflow = '';
+			document.body.style.paddingRight = '';
+		};
+	}, [isOpen]);
+
+	if (!mounted) return null;
+
+	return createPortal(
 		<AnimatePresence>
-			{isOpen && (
-				<div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+			{isOpen && order && (
+				<div className="fixed inset-0 z-[10000] z-[10000]">
 					{/* Backdrop */}
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
 						onClick={onClose}
-						className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+						className="fixed inset-0 bg-slate-900/60 backdrop-blur-md cursor-pointer"
+						aria-hidden="true"
 					/>
 
-					{/* Modal Container */}
-					<motion.div
-						initial={{ opacity: 0, y: "100%" }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: "100%" }}
-						transition={{ type: "spring", damping: 25, stiffness: 300 }}
-						className="relative w-full max-w-lg bg-white rounded-t-[2rem] sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+					{/* Layout Container - Scrollable */}
+					<div 
+						className="fixed inset-0 overflow-y-auto"
+						onClick={(e) => {
+							if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('min-h-full')) {
+								onClose();
+							}
+						}}
 					>
-						{/* Header */}
-						<div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
-							<div>
-								<h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-									Track Order
-								</h2>
-								<p className="text-xs text-slate-500 font-medium mt-1">
-									ID: <span className="font-mono text-slate-700">#{order._id.slice(-6).toUpperCase()}</span>
-								</p>
-							</div>
-							<Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-200" onClick={onClose}>
-								<X size={20} className="text-slate-500" />
-							</Button>
-						</div>
-
-						{/* Scrollable Timeline */}
-						<div className="flex-1 overflow-y-auto p-6 sm:p-8">
+						<div 
+							className="flex min-h-full items-center justify-center p-4 text-center"
+							onClick={(e) => {
+								if (e.target === e.currentTarget) onClose();
+							}}
+						>
 							
-							{/* Estimated Delivery Block */}
-							<div className="bg-[#003c1b]/5 rounded-2xl p-6 mb-8 flex items-start gap-4 border border-[#003c1b]/10">
-								<div className="w-10 h-10 bg-[#003c1b]/10 rounded-xl flex items-center justify-center shrink-0 text-[#003c1b]">
-									<Clock size={20} />
-								</div>
-								<div>
-									<h3 className="text-sm font-bold text-[#003c1b] mb-1">Estimated Delivery</h3>
-									<p className="text-xs text-[#003c1b]/80 font-medium leading-relaxed">
-										{order.isDelivered 
-											? "Your package has been delivered." 
-											: `Expected by ${new Date(new Date(order.createdAt).getTime() + 1000 * 60 * 60 * 24 * 3).toLocaleDateString()}`}
-									</p>
+							{/* Tracking Card - Centered */}
+							<motion.div
+								initial={{ opacity: 0, scale: 0.95, y: 20 }}
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.95, y: 20 }}
+								className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col my-8"
+								onClick={(e) => e.stopPropagation()}
+							>
+							{/* Header */}
+							<div className="relative px-6 sm:px-8 py-5 sm:py-6 bg-slate-900 overflow-hidden shrink-0">
+								<div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-no-repeat opacity-50" />
+								<div className="relative z-10 flex items-start justify-between gap-4">
+									<div className="space-y-1 text-left">
+										<h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Track Order</h2>
+										<p className="text-xs font-bold text-slate-400 uppercase tracking-widest break-all">ID: #{order._id.slice(-6).toUpperCase()}</p>
+									</div>
+									<button 
+										onClick={onClose} 
+										className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors backdrop-blur-md shrink-0"
+									>
+										<X size={20} />
+									</button>
 								</div>
 							</div>
 
-							{/* Vertical Stepper */}
-							<div className="relative pl-4 space-y-12">
-								{/* Connecting Line */}
-								<div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-100" />
-								{/* Active Progress Line */}
-								<motion.div 
-									initial={{ height: 0 }}
-									animate={{ height: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
-									transition={{ duration: 1, delay: 0.3 }}
-									className="absolute left-[27px] top-4 w-0.5 bg-[#003c1b] origin-top max-h-[calc(100%-2rem)]"
-								/>
+							{/* Timeline Content */}
+							<div className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-10 bg-white">
+								<div className="relative space-y-0 text-left">
+									{steps.map((step, idx) => {
+										const isCompleted = step.status === 'completed';
+										const isCurrent = step.status === 'current';
+										const isPending = step.status === 'pending';
+										const isLast = idx === steps.length - 1;
 
-								{steps.map((step, index) => {
-									const isCompleted = step.status === 'completed';
-									const isCurrent = step.status === 'current';
-									const isPending = step.status === 'pending';
-
-									return (
-										<motion.div 
-											key={step.id}
-											initial={{ opacity: 0, x: -20 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{ delay: index * 0.1 }}
-											className="relative flex gap-6"
-										>
-											{/* Icon Indicator */}
-											<div className={cn(
-												"relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-[3px] transition-all duration-500",
-												isCompleted ? "bg-[#003c1b] border-white shadow-lg shadow-[#003c1b]/30" : 
-												isCurrent ? "bg-white border-[#003c1b] ring-4 ring-[#003c1b]/10" : 
-												"bg-slate-100 border-white text-slate-300"
-											)}>
-												{isCompleted && <CheckCircle size={12} className="text-white" />}
-												{isCurrent && <div className="w-2 h-2 bg-[#003c1b] rounded-full animate-pulse" />}
-											</div>
-
-											{/* Content */}
-											<div className={cn("flex-1 pt-0.5", isPending && "opacity-40 grayscale")}>
-												<h4 className="text-sm font-bold text-slate-900">{step.label}</h4>
-												<p className="text-xs text-slate-500 mt-0.5">
-													{isPending ? 'Pending' : `${step.date} • ${step.time}`}
-												</p>
-												{isCurrent && (
-													<motion.div 
-														initial={{ opacity: 0, height: 0 }}
-														animate={{ opacity: 1, height: "auto" }}
-														className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100 text-[10px] text-slate-600"
-													>
-														We are currently processing this stage. Updates will be sent shortly.
-													</motion.div>
+										return (
+											<div key={idx} className={cn("relative z-10 flex gap-4 sm:gap-6 pb-10 sm:pb-12 last:pb-0 group", isLast && "pb-0")}>
+												{/* Line connector coloring for completed steps */}
+												{!isLast && (
+													<div className={cn(
+														"absolute left-[19px] sm:left-[27px] top-10 sm:top-12 bottom-0 w-0.5 z-0 transition-colors duration-500 delay-200",
+														(isCompleted && steps[idx+1]?.status !== 'pending') ? "bg-emerald-500" : "bg-slate-100"
+													)} />
 												)}
-											</div>
-										</motion.div>
-									);
-								})}
-							</div>
-						</div>
 
-						{/* Footer Actions */}
-						<div className="p-4 sm:p-6 border-t border-slate-100 bg-white">
-							<Button className="w-full h-12 bg-[#003c1b] text-white rounded-xl font-bold shadow-lg shadow-[#003c1b]/10" onClick={onClose}>
-								Close Tracking
-							</Button>
+												{/* Icon Marker */}
+												<div className={cn(
+													"relative shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shadow-sm",
+													isCompleted 
+														? "bg-emerald-500 border-emerald-500 text-white shadow-emerald-200" 
+														: isCurrent 
+															? "bg-white border-emerald-500 text-emerald-600 shadow-lg shadow-emerald-500/20 scale-110" 
+															: "bg-slate-50 border-slate-200 text-slate-300"
+												)}>
+													<step.icon size={18} className={cn("sm:w-5 sm:h-5 transition-all", isCurrent && "animate-pulse")} />
+													
+													{/* Current Pulse Effect Ring */}
+													{isCurrent && (
+														<span className="absolute inset-0 rounded-2xl border-2 border-emerald-500/30 animate-ping" />
+													)}
+												</div>
+
+												{/* Content */}
+												<div className={cn("pt-0.5 sm:pt-1.5 flex-1 transition-opacity duration-300", isPending && "opacity-40 grayscale")}>
+													<div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-0">
+														<h4 className={cn(
+															"text-sm sm:text-base font-bold tracking-tight uppercase",
+															isCompleted || isCurrent ? "text-slate-900" : "text-slate-500"
+														)}>
+															{step.label}
+														</h4>
+														{step.date && <span className="self-start text-[9px] sm:text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full whitespace-nowrap">{new Date(step.date).toLocaleDateString()}</span>}
+													</div>
+													
+													<p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 leading-normal">
+														{step.description}
+													</p>
+													
+													{isCurrent && (
+														<div className="mt-2 sm:mt-3 inline-flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] sm:text-xs font-bold border border-emerald-100">
+															<Clock size={12} className="animate-[spin_3s_linear_infinite]" />
+															<span>In Progress</span>
+														</div>
+													)}
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+
+							{/* Estimated Delivery Footer */}
+							<div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+								<div className="flex items-center gap-2 sm:gap-3">
+									<div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100 text-orange-500">
+										<Truck size={16} className="sm:w-5 sm:h-5" />
+									</div>
+									<div className="text-left">
+										<p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Delivery</p>
+										<p className="text-xs sm:text-sm font-black text-slate-800">
+											{order.isDelivered ? 'Delivered' : 'Within 24 Hours'}
+										</p>
+									</div>
+								</div>
+								
+								{order.isDelivered && (
+									<div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide">
+										<CheckCircle size={14} />
+										<span>Complete</span>
+									</div>
+								)}
+							</div>
+							</motion.div>
 						</div>
-					</motion.div>
+					</div>
 				</div>
 			)}
-		</AnimatePresence>
+		</AnimatePresence>,
+		document.body
 	);
 }

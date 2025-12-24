@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { UserOrderResponse } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, ShoppingBag } from 'lucide-react';
+import { X, Printer, ShoppingBag, Calendar, CheckCircle, CreditCard, Mail, Phone, MapPin, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface InvoiceModalProps {
 	isOpen: boolean;
@@ -12,188 +14,425 @@ interface InvoiceModalProps {
 	order: UserOrderResponse | null;
 }
 
-export default function InvoiceModal({ isOpen, onClose, order }: InvoiceModalProps) {
-	const invoiceRef = useRef<HTMLDivElement>(null);
+import { createPortal } from 'react-dom';
 
-	if (!order) return null;
+export default function InvoiceModal({ isOpen, onClose, order }: InvoiceModalProps) {
+	const [mounted, setMounted] = React.useState(false);
+
+	React.useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	const handlePrint = () => {
-		// Browser native print
-		window.print();
+		if (typeof window !== 'undefined') {
+			window.print();
+		}
 	};
 
-	// Calculate subtotal (approximate since API gives total)
-	const subtotal = order.totalOrderPrice - order.taxPrice - order.shippingPrice;
+	const subtotal = order ? (order.totalOrderPrice - order.taxPrice - order.shippingPrice) : 0;
 
-	return (
+	// Animation variants for staggered entrance
+	const containerVariants = {
+		hidden: { opacity: 0 },
+		visible: { 
+			opacity: 1,
+			transition: { 
+				staggerChildren: 0.1,
+				delayChildren: 0.2
+			}
+		},
+		exit: { opacity: 0 }
+	};
+
+	const itemVariants = {
+		hidden: { opacity: 0, y: 20 },
+		visible: { opacity: 1, y: 0 }
+	};
+
+	// Lock body scroll when modal is open and prevent layout shift
+	React.useEffect(() => {
+		if (isOpen) {
+			const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+			document.body.style.overflow = 'hidden';
+			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		} else {
+			document.body.style.overflow = '';
+			document.body.style.paddingRight = '';
+		}
+		return () => {
+			document.body.style.overflow = '';
+			document.body.style.paddingRight = '';
+		};
+	}, [isOpen]);
+
+	if (!mounted) return null;
+
+	return createPortal(
 		<AnimatePresence>
-			{isOpen && (
-				<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+			{isOpen && order && (
+				<div 
+					id="invoice-print-wrapper"
+					className="fixed inset-0 z-[10000] z-[10000]"
+				>
 					{/* Backdrop */}
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
 						onClick={onClose}
-						className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+						className="fixed inset-0 bg-slate-900/60 backdrop-blur-md cursor-pointer print:hidden"
+						aria-hidden="true"
 					/>
 
-					{/* Modal Container */}
-					<motion.div
-						initial={{ opacity: 0, scale: 0.95, y: 20 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{ opacity: 0, scale: 0.95, y: 0 }} // Change y to 0 to prevent jump on exit
-						className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col print:shadow-none print:max-h-none print:max-w-none print:w-full print:fixed print:inset-0 print:z-[200] print:rounded-none px-0"
-					>
-						{/* Header Toolbar - Hidden on Print */}
-						<div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50 print:hidden">
-							<h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-								Invoice Preview
-								<span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] uppercase tracking-wider">
-									#{order._id.slice(-6).toUpperCase()}
-								</span>
-							</h2>
-							<div className="flex items-center gap-2">
-								<Button variant="ghost" size="icon" onClick={() => window.print()} className="hidden sm:flex" title="Print Invoice">
-									<Printer size={18} className="text-slate-600" />
-								</Button>
-								<Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-200" onClick={onClose}>
-									<X size={20} className="text-slate-500" />
-								</Button>
-							</div>
-						</div>
+					{/* Layout Container - Scrollable */}
+					<div className="fixed inset-0 overflow-y-auto" onClick={(e) => {
+						// Close if clicking the background wrapper (but not if bubbling from content)
+						if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('min-h-full')) {
+							onClose();
+						}
+					}}>
+						<div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0"
+						     onClick={(e) => {
+							     if (e.target === e.currentTarget) onClose();
+						     }}
+						>
+							
+							{/* Print Styles */}
+							<style dangerouslySetInnerHTML={{ __html: `
+								@media print {
+									@page { margin: 0; size: auto; }
+									
+									html, body {
+										height: auto !important;
+										width: 100% !important;
+										margin: 0 !important;
+										padding: 0 !important;
+										overflow: visible !important;
+										background: white !important;
+										-webkit-print-color-adjust: exact !important;
+										print-color-adjust: exact !important;
+									}
 
-						{/* Scrollable Content */}
-						<div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/50 scrollbar-hide print:p-0 print:overflow-visible print:bg-white">
-							{/* The Actual Invoice Paper */}
-							<div ref={invoiceRef} className="bg-white mx-auto max-w-2xl shadow-sm border border-slate-200 p-6 sm:p-10 min-h-[600px] text-slate-900 print:shadow-none print:border-none print:m-0 print:p-8 print:max-w-none print:w-full print:h-auto">
-								
-								{/* Invoice Header */}
-								<div className="flex flex-col sm:flex-row justify-between items-start mb-8 sm:mb-12 gap-6 sm:gap-0">
-									<div>
-										<div className="flex items-center gap-2 mb-4">
-											<div className="w-8 h-8 bg-[#003c1b] rounded-lg flex items-center justify-center text-white shrink-0">
-												<ShoppingBag size={18} />
+									/* Hide all non-invoice content */
+									body > * { display: none !important; }
+									
+									/* Make the print wrapper the only visible root */
+									#invoice-print-wrapper { 
+										display: block !important; 
+										position: absolute !important;
+										top: 0 !important;
+										left: 0 !important;
+										width: 100% !important;
+										height: auto !important;
+										min-height: 100% !important;
+										z-index: 9999 !important;
+										background: white !important;
+										padding: 40px !important;
+										overflow: visible !important; /* No scrollbars */
+									}
+
+									/* Nuke all internal layout wrappers that cause scrolling/centering */
+									#invoice-print-wrapper > div,
+									#invoice-print-wrapper > div > div,
+									#invoice-print-wrapper > div > div > div {
+										position: static !important;
+										overflow: visible !important;
+										height: auto !important;
+										display: block !important;
+										padding: 0 !important;
+										margin: 0 !important;
+										transform: none !important;
+									}
+
+									/* Styles for the Card itself */
+									#invoice-card {
+										position: relative !important;
+										width: 100% !important;
+										max-width: 800px !important;
+										box-shadow: none !important;
+										border: 2px solid #e2e8f0 !important;
+										border-radius: 12px !important;
+										background: white !important;
+										margin: 0 auto !important;
+										overflow: hidden !important; /* Keeps border radius */
+										display: block !important;
+									}
+									
+									/* Fix Image Visibility */
+									#invoice-card img {
+										display: block !important;
+										opacity: 1 !important;
+										visibility: visible !important;
+										max-width: 100% !important;
+									}
+
+									/* Ensure explicit content visibility */
+									#invoice-card * {
+										visibility: visible !important;
+										-webkit-print-color-adjust: exact !important;
+										print-color-adjust: exact !important;
+									}
+									
+									/* Restore Table/Grid/Flex layouts inside the card so it looks right */
+									#invoice-card .flex { display: flex !important; }
+									#invoice-card .grid { display: grid !important; }
+									#invoice-card .hidden { display: none !important; }
+									
+									/* Hide UI-only elements */
+									.print-hidden { display: none !important; }
+
+									/* Table Styling */
+									#invoice-card table th {
+										background-color: #f8fafc !important;
+										color: #475569 !important;
+									}
+									.bg-slate-50\\/30 {
+										background-color: #f8fafc !important; 
+									}
+								}
+							`}} />
+
+							{/* Modal Panel */}
+							<motion.div
+								variants={itemVariants}
+								initial="hidden"
+								animate="visible"
+								exit="hidden"
+								className="relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 w-full max-w-4xl"
+								onClick={(e) => e.stopPropagation()}
+							>
+								{/* Invoice Card Content */}
+								<div 
+									className="relative w-full bg-white rounded-none sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+									id="invoice-card"
+								>
+									{/* Header / Actions (Non-Printable) */}
+									<div className="flex items-center justify-between px-4 py-4 sm:px-10 sm:py-6 bg-slate-50/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-40 print:hidden">
+										<div className="flex items-center gap-2 sm:gap-3">
+											<div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20 shrink-0">
+												<ShoppingBag className="text-white h-4 w-4 sm:h-5 sm:w-5" />
 											</div>
-											<span className="text-xl font-black tracking-tight">Fresh<span className="text-[#003c1b] italic font-serif">Cart</span></span>
+											<div className="min-w-0">
+												<h2 className="text-sm sm:text-base sm:text-lg font-black text-slate-900 tracking-tight truncate">Invoice Details</h2>
+												<p className="text-[9px] sm:text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wide truncate">#{order._id.slice(-6).toUpperCase()}</p>
+											</div>
 										</div>
-										<div className="text-xs text-slate-500 leading-relaxed">
-											<p>FreshCart Inc.</p>
-											<p>123 Organic Lane, Green Valley</p>
-											<p>Cairo, Egypt</p>
-											<p>support@freshcart.com</p>
+										
+										<div className="flex items-center gap-1.5 sm:gap-3">
+											<Button 
+												onClick={handlePrint}
+												variant="outline"
+												size="sm"
+												className="hidden sm:flex h-9 text-xs font-black uppercase tracking-wide border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all gap-2"
+											>
+												<Printer size={14} />
+												Print Invoice
+											</Button>
+											<Button
+												onClick={handlePrint}
+												variant="outline"
+												size="icon"
+												className="sm:hidden h-8 w-8 sm:h-9 sm:w-9 rounded-full border-slate-200 hover:bg-slate-100"
+											>
+												<Printer size={14} />
+											</Button>
+											<button 
+												onClick={onClose} 
+												className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors"
+											>
+												<X size={18} />
+											</button>
 										</div>
 									</div>
-									<div className="text-left sm:text-right w-full sm:w-auto">
-										<h1 className="text-3xl font-black text-slate-200 uppercase tracking-widest mb-2">Invoice</h1>
-										<p className="font-bold text-slate-700">#INV-{order._id.slice(-6).toUpperCase()}</p>
-										<p className="text-xs text-slate-500 mt-1">
-											Issued: {new Date(order.createdAt).toLocaleDateString()}
-										</p>
-									</div>
-								</div>
 
-								{/* Bill To / Ship To */}
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8 sm:mb-12 border-b border-slate-100 pb-8">
-									<div>
-										<h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Bill To</h3>
-										<p className="font-bold text-sm mb-1">{order.user.name}</p>
-										<p className="text-xs text-slate-500 break-all">{order.user.email}</p>
-										<p className="text-xs text-slate-500">{order.shippingAddress?.phone}</p>
-									</div>
-									<div className="text-left sm:text-right">
-										<h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Ship To</h3>
-										<p className="font-bold text-sm mb-1">{order.shippingAddress?.details}</p>
-										<p className="text-xs text-slate-500">{order.shippingAddress?.city}</p>
-										<p className="text-xs text-slate-500">Egypt</p>
-									</div>
-								</div>
-
-								{/* Line Items */}
-								<div className="mb-10">
-									{/* Mobile Item List (visible < 640px) */}
-									<div className="block sm:hidden space-y-4">
-										{order.cartItems.map((item) => (
-											<div key={item._id} className="flex justify-between items-start border-b border-slate-50 pb-4 last:border-0">
-												<div className="pr-4">
-													<p className="text-sm font-bold text-slate-800">{item.product.title}</p>
-													<p className="text-[10px] text-slate-400 mb-1">{item.product.brand.name}</p>
-													<p className="text-xs text-slate-500">Qty: {item.count} × {item.price.toLocaleString()}</p>
+									{/* Scrollable Content */}
+									<div className="p-4 sm:p-10 lg:p-12 space-y-8 sm:space-y-14 bg-white">
+										
+										{/* Invoice Header */}
+										<div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 border-b border-dashed border-slate-200 pb-8 sm:pb-10">
+											<div className="space-y-3 sm:space-y-4 w-full">
+												<div className="flex flex-wrap items-center gap-2">
+													<span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter mr-2">INVOICE</span>
+													<span className={cn(
+														"px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest border",
+														order.isPaid 
+															? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+															: "bg-amber-50 text-amber-700 border-amber-100"
+													)}>
+														{order.isPaid ? 'Paid' : 'Unpaid'}
+													</span>
+													<span className={cn(
+														"px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest border",
+														order.isDelivered 
+															? "bg-blue-50 text-blue-700 border-blue-100" 
+															: "bg-slate-100 text-slate-600 border-slate-200"
+													)}>
+														{order.isDelivered ? 'Delivered' : 'Processing'}
+													</span>
 												</div>
-												<div className="text-right whitespace-nowrap">
-													<p className="text-sm font-bold text-slate-900">{(item.price * item.count).toLocaleString()}</p>
+												<div className="space-y-1">
+													<div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 font-medium">
+														<span className="w-4 shrink-0"><Calendar size={14} /></span>
+														<span>{new Date(order.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+													</div>
+													<div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 font-medium">
+														<span className="w-4 shrink-0"><CreditCard size={14} /></span>
+														<span>{order.paymentMethodType}</span>
+													</div>
+												</div>
+											</div>
+											<div className="text-left sm:text-right space-y-1 w-full">
+												<p className="text-base sm:text-lg font-bold text-slate-900">Fresh Cart Inc.</p>
+												<p className="text-xs sm:text-sm text-slate-500">123 Grocery Lane, Cairo, Egypt</p>
+												<p className="text-xs sm:text-sm text-slate-500">support@freshcart.com</p>
+												<p className="text-xs sm:text-sm text-slate-500">+20 123 456 7890</p>
+											</div>
+										</div>
+
+								{/* Customer & Order Info */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-12">
+									<div className="space-y-3 sm:space-y-4">
+										<h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
+											<Mail size={14} /> Bill To
+										</h4>
+										<div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-3 border border-slate-100">
+											<p className="font-bold text-slate-900 text-base sm:text-lg break-words">{order.user.name}</p>
+											<div className="space-y-1 text-xs sm:text-sm text-slate-600 break-all">
+												<p>{order.user.email}</p>
+												<p>{order.shippingAddress?.phone}</p>
+											</div>
+										</div>
+									</div>
+									<div className="space-y-3 sm:space-y-4">
+										<h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
+											<MapPin size={14} /> Ship To
+										</h4>
+										<div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-3 border border-slate-100">
+											<p className="font-bold text-slate-900 text-base sm:text-lg">Shipping Address</p>
+											<div className="space-y-1 text-xs sm:text-sm text-slate-600">
+												<p className="break-words">{order.shippingAddress?.details}</p>
+												<p>{order.shippingAddress?.city}, Egypt</p>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								{/* Products Section */}
+								<div className="space-y-4">
+									<h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
+										<Package size={14} /> Items Ordered
+									</h4>
+
+									{/* Desktop Table View */}
+									<div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200">
+										<table className="w-full text-sm">
+											<thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+												<tr>
+													<th className="px-6 py-4 text-left">Product Details</th>
+													<th className="px-6 py-4 text-center">Qty</th>
+													<th className="px-6 py-4 text-right">Unit Price</th>
+													<th className="px-6 py-4 text-right">Total</th>
+												</tr>
+											</thead>
+											<tbody className="divide-y divide-slate-100 bg-white">
+												{order.cartItems.map((item) => (
+													<tr key={item._id} className="hover:bg-slate-50/50 transition-colors">
+														<td className="px-6 py-4">
+															<div className="flex items-center gap-4">
+																<div className="w-12 h-12 bg-white rounded-lg shadow-sm border border-slate-100 p-1 shrink-0">
+																	<Image 
+																		src={item.product.imageCover || "https://placehold.co/100x100?text=No+Image"}
+																		alt={item.product.title}
+																		width={48}
+																		height={48}
+																		className="w-full h-full object-contain"
+																		unoptimized
+																	/>
+																</div>
+																<span className="font-bold text-slate-700 line-clamp-2 container">{item.product.title}</span>
+															</div>
+														</td>
+														<td className="px-6 py-4 text-center font-mono text-slate-600 font-medium">x{item.count}</td>
+														<td className="px-6 py-4 text-right font-mono text-slate-600">{item.price.toLocaleString()}</td>
+														<td className="px-6 py-4 text-right font-bold text-slate-900 font-mono">{(item.price * item.count).toLocaleString()} EGP</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
+
+									{/* Mobile Card View */}
+									<div className="md:hidden space-y-4">
+										{order.cartItems.map((item) => (
+											<div key={item._id} className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm flex gap-3 sm:gap-4 items-start">
+												<div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-lg p-1 shrink-0 border border-slate-100">
+													<Image 
+														src={item.product.imageCover || "https://placehold.co/100x100?text=No+Image"}
+														alt={item.product.title}
+														width={64}
+														height={64}
+														className="w-full h-full object-contain"
+														unoptimized
+													/>
+												</div>
+												<div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+													<p className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 leading-tight">{item.product.title}</p>
+													<div className="flex flex-col xs:flex-row justify-between xs:items-end gap-1">
+														<div className="space-y-0.5">
+															<p className="text-[10px] sm:text-xs text-slate-500 font-medium">{item.price.toLocaleString()} EGP / unit</p>
+															<p className="text-[10px] sm:text-xs font-black text-slate-400 bg-slate-100 inline-block px-1.5 py-0.5 rounded">x{item.count}</p>
+														</div>
+														<p className="font-black text-emerald-700 text-sm sm:text-base">{(item.price * item.count).toLocaleString()} <span className="text-[10px]">EGP</span></p>
+													</div>
 												</div>
 											</div>
 										))}
 									</div>
-
-									{/* Desktop Table (visible >= 640px) */}
-									<table className="hidden sm:table w-full text-left">
-										<thead>
-											<tr className="border-b-2 border-slate-100">
-												<th className="py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 w-1/2">Item Description</th>
-												<th className="py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Qty</th>
-												<th className="py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Price</th>
-												<th className="py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
-											</tr>
-										</thead>
-										<tbody className="divide-y divide-slate-50">
-											{order.cartItems.map((item) => (
-												<tr key={item._id}>
-													<td className="py-4">
-														<p className="text-sm font-bold text-slate-800">{item.product.title}</p>
-														<p className="text-[10px] text-slate-400">{item.product.brand.name}</p>
-													</td>
-													<td className="py-4 text-center text-sm font-medium">{item.count}</td>
-													<td className="py-4 text-right text-sm text-slate-600">{item.price.toLocaleString()}</td>
-													<td className="py-4 text-right text-sm font-bold text-slate-900">{(item.price * item.count).toLocaleString()}</td>
-												</tr>
-											))}
-										</tbody>
-									</table>
 								</div>
 
-								{/* Summary Totals */}
-								<div className="flex justify-end mb-12">
-									<div className="w-full sm:w-1/3 space-y-3">
-										<div className="flex justify-between text-xs text-slate-500">
+								{/* Summary Section */}
+								<div className="flex flex-col items-end pt-6 border-t border-slate-100">
+									<div className="w-full max-w-xs space-y-3">
+										<div className="flex justify-between text-xs sm:text-sm text-slate-500 font-medium">
 											<span>Subtotal</span>
-											<span className="font-medium">{subtotal > 0 ? subtotal.toLocaleString() : order.totalOrderPrice.toLocaleString()} EGP</span>
+											<span className="font-mono text-slate-700">{subtotal.toLocaleString()} EGP</span>
 										</div>
-										<div className="flex justify-between text-xs text-slate-500">
+										<div className="flex justify-between text-xs sm:text-sm text-slate-500 font-medium">
 											<span>Tax (14%)</span>
-											<span className="font-medium">{order.taxPrice.toLocaleString()} EGP</span>
+											<span className="font-mono text-slate-700">{order.taxPrice.toLocaleString()} EGP</span>
 										</div>
-										<div className="flex justify-between text-xs text-slate-500">
+										<div className="flex justify-between text-xs sm:text-sm text-slate-500 font-medium">
 											<span>Shipping</span>
-											<span className="font-medium">{order.shippingPrice === 0 ? 'Free' : `${order.shippingPrice} EGP`}</span>
+											<span className="font-mono text-slate-700">{order.shippingPrice === 0 ? 'Free' : `${order.shippingPrice} EGP`}</span>
 										</div>
-										<div className="h-px bg-slate-200 my-2" />
-										<div className="flex justify-between text-base font-black text-slate-900">
-											<span>Total</span>
-											<span>{order.totalOrderPrice.toLocaleString()} EGP</span>
+										<div className="pt-4 mt-2 border-t-2 border-slate-900 border-dashed flex justify-between items-center">
+											<span className="font-black text-base sm:text-lg text-slate-900 uppercase tracking-tight">Total</span>
+											<span className="font-black text-xl sm:text-2xl text-emerald-600 tracking-tight">{order.totalOrderPrice.toLocaleString()} <span className="text-xs sm:text-sm text-emerald-600/60">EGP</span></span>
 										</div>
 									</div>
 								</div>
 
 								{/* Footer */}
-								<div className="text-center pt-8 border-t border-slate-100">
-									<p className="text-xs font-bold text-slate-900 mb-1">Thank you for your business!</p>
-									<p className="text-[10px] text-slate-400">If you have questions about this invoice, please contact support.</p>
+								<div className="pt-12 text-center space-y-2 print:hidden pb-10">
+									<div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-widest">
+										<CheckCircle size={14} />
+										<span>Official Verified Receipt</span>
+									</div>
+									<p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+										Thank you for shopping with Fresh Cart. If you have any questions about this invoice, please contact our support team.
+									</p>
 								</div>
-
 							</div>
+							
+							{/* Decorative Bottom Edge */}
+							<div className="h-2 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#f1f5f9_10px,#f1f5f9_20px)] border-t border-slate-100" />
 						</div>
-
-						{/* Mobile Footer Actions */}
-						<div className="p-4 border-t border-slate-100 bg-white sm:hidden flex gap-3">
-							<Button className="flex-1 bg-[#003c1b] text-white" onClick={() => window.print()}>
-								Print / PDF
-							</Button>
-						</div>
-					</motion.div>
+						</motion.div>
+					</div>
+					</div>
 				</div>
 			)}
-		</AnimatePresence>
+		</AnimatePresence>,
+		document.body
 	);
 }
